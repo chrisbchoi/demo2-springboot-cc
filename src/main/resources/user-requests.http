@@ -1,0 +1,59 @@
+### Login to get authentication
+POST http://localhost:8080/login
+Content-Type: application/x-www-form-urlencoded
+
+username=admin&password=admin
+###
+
+### Store the session cookie for authenticated requests
+@sessionCookie = {{login.response.headers.Set-Cookie}}
+
+### Get all users (no auth - will work with current SecurityConfig)
+GET http://localhost:8080/api/users
+Accept: application/json
+
+### Get all users (with Basic Auth)
+GET http://localhost:8080/api/users
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### Get all users (with session cookie from login)
+GET http://localhost:8080/api/users
+Accept: application/json
+Cookie: {{sessionCookie}}
+#####
+
+### Get user by ID
+GET http://localhost:8080/api/users/1
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### Create a new user
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "johndoe",
+  "email": "john.doe@example.com",
+  "fullName": "John Doe",
+  "active": true
+}
+
+### Update an existing user
+PUT http://localhost:8080/api/users/1
+Content-Type: application/json
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "johndoe",
+  "email": "john.doe.updated@example.com",
+  "fullName": "John Doe Updated",
+  "active": true
+}
+
+### Delete a user
+DELETE http://localhost:8080/api/users/1
+Authorization: Basic YWRtaW46YWRtaW4=
