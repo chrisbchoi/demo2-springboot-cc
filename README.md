@@ -38,11 +38,13 @@ The project follows a standard layered architecture:
 
 - **Model** - Entity classes (`User`)
 - **Repository** - Data access interfaces
-- **Service** - Business logic
+- **Service** - Business logic and security services
 - **Controller** - REST API endpoints
 - **Exception** - Custom exceptions and error handling
 - **Config** - Application configuration classes (Security, etc.)
 - **Test** - Unit and integration tests
+- **DTOs** - Data Transfer Objects for authentication and other operations
+- **Security** - JWT authentication filter and security configurations
 
 ```
 src/
@@ -52,15 +54,23 @@ src/
 │   │   ├── config/
 │   │   │   └── SecurityConfig.java
 │   │   ├── controller/
-│   │   │   └── UserController.java
+│   │   │   ├── UserController.java
+│   │   │   └── AuthController.java
+│   │   ├── dto/
+│   │   │   ├── AuthRequest.java
+│   │   │   ├── AuthResponse.java
+│   │   │   └── UserDto.java
 │   │   ├── exception/
 │   │   │   └── ResourceNotFoundException.java
+│   │   ├── filter/
+│   │   │   └── JwtAuthenticationFilter.java
 │   │   ├── model/
 │   │   │   └── User.java
 │   │   ├── repository/
 │   │   │   └── UserRepository.java
 │   │   └── service/
-│   │       └── UserService.java
+│   │       ├── UserService.java
+│   │       └── JwtService.java
 │   └── resources/
 │       ├── application.properties
 │       ├── openapi.yaml
@@ -68,9 +78,12 @@ src/
 └── test/
     └── java/com/cc/data/demo2springboot/
         ├── controller/
-        │   └── UserControllerTest.java
+        │   ├── AuthControllerTest.java
+        │   ├── UserControllerTest.java
+        │   └── UserControllerSecurityTest.java
         ├── service/
         │   └── UserServiceTest.java
+        │   └── JwtServiceTest.java
         └── config/
             └── TestSecurityConfig.java
 ```
@@ -94,6 +107,7 @@ src/
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone [repository-url]
    cd demo2-springboot
@@ -115,6 +129,7 @@ mvn spring-boot:run
 The application will be available at `http://localhost:8080`.
 
 H2 Console can be accessed at `http://localhost:8080/h2-console` with these credentials:
+
 - JDBC URL: `jdbc:h2:mem:testdb`
 - Username: `sa`
 - Password: `password`
@@ -123,11 +138,12 @@ H2 Console can be accessed at `http://localhost:8080/h2-console` with these cred
 
 ### Authentication Endpoints
 
-| Method | Endpoint        | Description                        | Auth Required |
-|--------|----------------|------------------------------------|---------------|
-| POST   | /api/auth/login | Login and get JWT token            | No            |
+| Method | Endpoint        | Description             | Auth Required |
+| ------ | --------------- | ----------------------- | ------------- |
+| POST   | /api/auth/login | Login and get JWT token | No            |
 
 Example authentication request:
+
 ```http
 POST /api/auth/login
 Content-Type: application/json
@@ -139,6 +155,7 @@ Content-Type: application/json
 ```
 
 Example response:
+
 ```json
 {
   "token": "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6IkFETUlOLFVTRVIiLCJzdWIiOiJhZG1pbiIsImlhdCI6MTYzMDc2MjQ4NSwiZXhwIjoxNjMwODQ4ODg1fQ.example-token"
@@ -147,14 +164,14 @@ Example response:
 
 ### User Endpoints
 
-| Method | Endpoint | Description | Auth Required |
-|--------|----------|-------------|--------------|
-| GET    | /api/users | Get all users | No |
-| GET    | /api/users?page={pageNumber}&size={pageSize} | Get paginated users | No |
-| GET    | /api/users/{id} | Get user by ID | No |
-| POST   | /api/users | Create a new user | Yes (ADMIN role) |
-| PUT    | /api/users/{id} | Update an existing user | Yes (ADMIN role) |
-| DELETE | /api/users/{id} | Delete a user | Yes (ADMIN role) |
+| Method | Endpoint                                     | Description             | Auth Required    |
+| ------ | -------------------------------------------- | ----------------------- | ---------------- |
+| GET    | /api/users                                   | Get all users           | No               |
+| GET    | /api/users?page={pageNumber}&size={pageSize} | Get paginated users     | No               |
+| GET    | /api/users/{id}                              | Get user by ID          | No               |
+| POST   | /api/users                                   | Create a new user       | Yes (ADMIN role) |
+| PUT    | /api/users/{id}                              | Update an existing user | Yes (ADMIN role) |
+| DELETE | /api/users/{id}                              | Delete a user           | Yes (ADMIN role) |
 
 ### Authentication Flow
 
@@ -167,6 +184,7 @@ The application uses JWT (JSON Web Token) for authentication:
 #### How to Use JWT Authentication
 
 1. **Step 1: Login to get a JWT token**
+
    ```http
    POST http://localhost:8080/api/auth/login
    Content-Type: application/json
@@ -178,6 +196,7 @@ The application uses JWT (JSON Web Token) for authentication:
    ```
 
 2. **Step 2: Save the token from the response**
+
    ```json
    {
      "token": "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6IkFETUlOLFVTRVIiLCJzdWIiOiJhZG1pbiIsImlhdCI..."
@@ -185,6 +204,7 @@ The application uses JWT (JSON Web Token) for authentication:
    ```
 
 3. **Step 3: Use token for protected endpoints** (POST, PUT, DELETE operations)
+
    ```http
    POST http://localhost:8080/api/users
    Content-Type: application/json
@@ -203,6 +223,7 @@ The application uses JWT (JSON Web Token) for authentication:
 The application comes with two pre-configured users:
 
 1. **Regular User**
+
    - Username: `user`
    - Password: `password`
    - Role: `USER`
@@ -223,18 +244,20 @@ GET /api/users?page=0&size=10
 ```
 
 Parameters:
+
 - `page`: Zero-based page index (0 = first page, 1 = second page)
 - `size`: Number of items per page
 
 The response includes pagination metadata:
+
 ```json
 {
   "content": [
-    { 
+    {
       "id": 1,
-      "username": "user1",
+      "username": "user1"
       // other user properties
-    },
+    }
     // more users
   ],
   "pageable": {
@@ -266,6 +289,7 @@ mvn test
 ```
 
 The project includes:
+
 - Unit tests for service layer logic
 - Controller tests for API endpoints
 - Security tests for authentication and authorization
@@ -282,6 +306,7 @@ The application includes comprehensive security tests in `UserControllerSecurity
 - JWT token authentication
 
 These tests ensure that:
+
 1. Anonymous users can view users but cannot create, update, or delete
 2. Regular users (ROLE_USER) can view but have limited write access
 3. Admin users (ROLE_ADMIN) have full access to all endpoints
@@ -289,6 +314,7 @@ These tests ensure that:
 5. The application handles OPTIONS requests for CORS preflight correctly
 
 Security tests are organized into nested test classes for better readability:
+
 - AuthenticationTests
 - AuthorizationTests
 - CsrfTests
@@ -299,13 +325,15 @@ Security tests are organized into nested test classes for better readability:
 ## Security
 
 The application is configured with Spring Security:
-- API endpoints (/api/**) are permitted for all requests in the current configuration
+
+- API endpoints (/api/\*\*) are permitted for all requests in the current configuration
 - H2 console is accessible without authentication
 - CSRF protection is disabled for API endpoints and H2 console
 
 ## Database Configuration
 
 The application uses H2 in-memory database with the following configuration:
+
 - URL: `jdbc:h2:mem:testdb`
 - Username: `sa`
 - Password: `password`
@@ -313,5 +341,6 @@ The application uses H2 in-memory database with the following configuration:
 - SQL logging is enabled for debugging
 
 JPA properties:
+
 - Show SQL: `true`
 - Format SQL: `true`
