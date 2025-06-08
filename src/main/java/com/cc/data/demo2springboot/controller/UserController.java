@@ -4,6 +4,9 @@ import com.cc.data.demo2springboot.exception.ResourceNotFoundException;
 import com.cc.data.demo2springboot.model.User;
 import com.cc.data.demo2springboot.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -26,7 +29,23 @@ public class UserController {
     }
 
     /**
-     * GET /api/users : Get all users
+     * GET /api/users : Get all users with pagination support
+     *
+     * @param page The page number (zero-based)
+     * @param size The size of the page
+     * @return the ResponseEntity with status 200 (OK) and the paged list of users in the body
+     */
+    @GetMapping(params = {"page", "size"})
+    public ResponseEntity<Page<User>> getAllUsersPaginated(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<User> users = userService.getAllUsers(pageable);
+        return ResponseEntity.ok(users);
+    }
+
+    /**
+     * GET /api/users : Get all users (non-paginated)
      *
      * @return the ResponseEntity with status 200 (OK) and the list of users in the body
      */

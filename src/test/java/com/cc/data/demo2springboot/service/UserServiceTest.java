@@ -9,6 +9,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -211,5 +215,46 @@ class UserServiceTest {
         assertThat(exception.getMessage()).contains("User not found");
         verify(userRepository, times(1)).existsById(99L);
         verify(userRepository, never()).deleteById(anyLong());
+    }
+
+    @Test
+    void getAllUsers_WithPageable_ShouldReturnPaginatedUsers() {
+        // Arrange
+        User user2 = new User(2L, "user2", "user2@example.com", "User Two",
+                now, now, true);
+        List<User> userList = Arrays.asList(testUser, user2);
+        Page<User> expectedPage = new PageImpl<>(userList);
+
+        Pageable pageable = PageRequest.of(0, 10);
+        when(userRepository.findAll(pageable)).thenReturn(expectedPage);
+
+        // Act
+        Page<User> actualPage = userService.getAllUsers(pageable);
+
+        // Assert
+        assertThat(actualPage.getContent()).containsExactlyInAnyOrderElementsOf(userList);
+        assertThat(actualPage.getTotalElements()).isEqualTo(userList.size());
+        assertThat(actualPage.getTotalPages()).isEqualTo(1);
+        verify(userRepository, times(1)).findAll(pageable);
+    }
+
+    @Test
+    void getAllUsers_WithPageable_WhenNoUsers_ShouldReturnEmptyPage() {
+        // Arrange
+        Page<User> emptyPage = new PageImpl<>(Collections.emptyList());
+
+        Pageable pageable = PageRequest.of(0, 10);
+        when(userRepository.findAll(pageable)).thenReturn(emptyPage);
+
+        // Act
+        Page<User> actualPage = userService.getAllUsers(pageable);
+
+        // Assert
+        assertThat(actualPage.getContent()).isEmpty();
+        assertThat(actualPage.getTotalElements()).isEqualTo(0);
+        // When creating an empty Page with PageImpl and a non-zero page size,
+        // Spring Data JPA will return 1 total page instead of 0
+        assertThat(actualPage.getTotalPages()).isEqualTo(1);
+        verify(userRepository, times(1)).findAll(pageable);
     }
 }

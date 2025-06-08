@@ -3,6 +3,8 @@ package com.cc.data.demo2springboot.service;
 import com.cc.data.demo2springboot.model.User;
 import com.cc.data.demo2springboot.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,6 +30,15 @@ public class UserService {
      */
     public List<User> getAllUsers() {
         return userRepository.findAll();
+    }
+
+    /**
+     * Get all users with pagination
+     * @param pageable pagination information
+     * @return page of users
+     */
+    public Page<User> getAllUsers(Pageable pageable) {
+        return userRepository.findAll(pageable);
     }
 
     /**

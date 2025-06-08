@@ -21,6 +21,17 @@ Authorization: Basic YWRtaW46YWRtaW4=
 GET http://localhost:8080/api/users
 Accept: application/json
 Cookie: {{sessionCookie}}
+
+### Get all users (paginated)
+GET http://localhost:8080/api/users?page=0&size=10
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### Get all users - page 2 with 5 users per page
+GET http://localhost:8080/api/users?page=1&size=5
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
 #####
 
 ### Get user by ID
@@ -56,4 +67,178 @@ Authorization: Basic YWRtaW46YWRtaW4=
 
 ### Delete a user
 DELETE http://localhost:8080/api/users/1
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### === Batch User Creation for Pagination Testing ===
+
+### Create User 1
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "user1",
+  "email": "user1@example.com",
+  "fullName": "User One",
+  "active": true
+}
+
+### Create User 2
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "user2",
+  "email": "user2@example.com",
+  "fullName": "User Two",
+  "active": true
+}
+
+### Create User 3
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "user3",
+  "email": "user3@example.com",
+  "fullName": "User Three",
+  "active": true
+}
+
+### Create User 4
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "user4",
+  "email": "user4@example.com",
+  "fullName": "User Four",
+  "active": true
+}
+
+### Create User 5
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "user5",
+  "email": "user5@example.com",
+  "fullName": "User Five",
+  "active": true
+}
+
+### Create User 6
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "user6",
+  "email": "user6@example.com",
+  "fullName": "User Six",
+  "active": true
+}
+
+### Create User 7
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "user7",
+  "email": "user7@example.com",
+  "fullName": "User Seven",
+  "active": true
+}
+
+### Create User 8
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "user8",
+  "email": "user8@example.com",
+  "fullName": "User Eight",
+  "active": true
+}
+
+### Create User 9
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "user9",
+  "email": "user9@example.com",
+  "fullName": "User Nine",
+  "active": true
+}
+
+### Create User 10
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "user10",
+  "email": "user10@example.com",
+  "fullName": "User Ten",
+  "active": true
+}
+
+### Create User 11
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "user11",
+  "email": "user11@example.com",
+  "fullName": "User Eleven",
+  "active": true
+}
+
+### Create User 12
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+{
+  "username": "user12",
+  "email": "user12@example.com",
+  "fullName": "User Twelve",
+  "active": true
+}
+
+### After creating users, test pagination with different page sizes
+### Get users page 1 (5 per page)
+GET http://localhost:8080/api/users?page=0&size=5
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### Get users page 2 (5 per page)
+GET http://localhost:8080/api/users?page=1&size=5
+Accept: application/json
+Authorization: Basic YWRtaW46YWRtaW4=
+
+### Get users page 3 (5 per page)
+GET http://localhost:8080/api/users?page=2&size=5
+Accept: application/json
 Authorization: Basic YWRtaW46YWRtaW4=
