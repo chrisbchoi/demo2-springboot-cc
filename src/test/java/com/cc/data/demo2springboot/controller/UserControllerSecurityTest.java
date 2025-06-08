@@ -106,7 +106,7 @@ public class UserControllerSecurityTest {
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(newUser)))
-                    .andExpect(status().isCreated()); // was isForbidden()
+                    .andExpect(status().isForbidden());
         }
 
         @Test
@@ -120,7 +120,7 @@ public class UserControllerSecurityTest {
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(updatedUser)))
-                    .andExpect(status().isOk()); // was isForbidden()
+                    .andExpect(status().isForbidden());
         }
 
         @Test
@@ -129,7 +129,7 @@ public class UserControllerSecurityTest {
         void deleteUser_WithAnonymousUser_ShouldBeForbidden() throws Exception {
             mockMvc.perform(delete("/api/users/1")
                     .with(csrf()))
-                    .andExpect(status().isNoContent()); // was isForbidden()
+                    .andExpect(status().isForbidden());
         }
     }
 
@@ -157,7 +157,7 @@ public class UserControllerSecurityTest {
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(newUser)))
-                    .andExpect(status().isCreated()); // was isForbidden()
+                    .andExpect(status().isForbidden());
         }
 
         @Test
@@ -212,8 +212,9 @@ public class UserControllerSecurityTest {
             mockMvc.perform(post("/api/users")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(newUser)))
-                    .andExpect(status().isCreated()); // was isForbidden()
+                    .andExpect(status().isForbidden());
         }
+
         @Test
         @DisplayName("PUT without CSRF token should be forbidden")
         @WithMockUser(roles = "ADMIN")
@@ -224,14 +225,15 @@ public class UserControllerSecurityTest {
             mockMvc.perform(put("/api/users/1")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(updatedUser)))
-                    .andExpect(status().isOk()); // was isForbidden()
+                    .andExpect(status().isForbidden());
         }
+
         @Test
         @DisplayName("DELETE without CSRF token should be forbidden")
         @WithMockUser(roles = "ADMIN")
         void deleteUser_WithoutCsrf_ShouldBeForbidden() throws Exception {
             mockMvc.perform(delete("/api/users/1"))
-                    .andExpect(status().isNoContent()); // was isForbidden()
+                    .andExpect(status().isForbidden());
         }
     }
 
@@ -245,17 +247,17 @@ public class UserControllerSecurityTest {
             mockMvc.perform(options("/api/users")
                     .header("Access-Control-Request-Method", "GET")
                     .header("Origin", "http://localhost:3000"))
-                    .andExpect(status().isForbidden()); // was isOk()
+                    .andExpect(status().isOk());
         }
 
         @Test
-        @DisplayName("Invalid HTTP method should return method not allowed")
+        @DisplayName("Invalid HTTP method should be forbidden")
         void invalidMethod_ShouldReturnMethodNotAllowed() throws Exception {
             mockMvc.perform(patch("/api/users/1")
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("{}"))
-                    .andExpect(status().isMethodNotAllowed());
+                    .andExpect(status().isForbidden());
         }
     }
 

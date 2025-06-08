@@ -121,29 +121,98 @@ H2 Console can be accessed at `http://localhost:8080/h2-console` with these cred
 
 ## API Documentation
 
-### User Endpoints
+### Authentication Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET    | /api/users | Get all users |
-| GET    | /api/users?page={pageNumber}&size={pageSize} | Get paginated users |
-| GET    | /api/users/{id} | Get user by ID |
-| POST   | /api/users | Create a new user |
-| PUT    | /api/users/{id} | Update an existing user |
-| DELETE | /api/users/{id} | Delete a user |
+| Method | Endpoint        | Description                        | Auth Required |
+|--------|----------------|------------------------------------|---------------|
+| POST   | /api/auth/login | Login and get JWT token            | No            |
 
-Example request (Create User):
+Example authentication request:
 ```http
-POST /api/users
+POST /api/auth/login
 Content-Type: application/json
 
 {
-  "username": "johndoe",
-  "email": "john@example.com",
-  "fullName": "John Doe",
-  "active": true
+  "username": "admin",
+  "password": "admin"
 }
 ```
+
+Example response:
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6IkFETUlOLFVTRVIiLCJzdWIiOiJhZG1pbiIsImlhdCI6MTYzMDc2MjQ4NSwiZXhwIjoxNjMwODQ4ODg1fQ.example-token"
+}
+```
+
+### User Endpoints
+
+| Method | Endpoint | Description | Auth Required |
+|--------|----------|-------------|--------------|
+| GET    | /api/users | Get all users | No |
+| GET    | /api/users?page={pageNumber}&size={pageSize} | Get paginated users | No |
+| GET    | /api/users/{id} | Get user by ID | No |
+| POST   | /api/users | Create a new user | Yes (ADMIN role) |
+| PUT    | /api/users/{id} | Update an existing user | Yes (ADMIN role) |
+| DELETE | /api/users/{id} | Delete a user | Yes (ADMIN role) |
+
+### Authentication Flow
+
+The application uses JWT (JSON Web Token) for authentication:
+
+1. **Login to get a token** - Send credentials to `/api/auth/login`
+2. **Store the token** - Save the returned JWT token
+3. **Use the token for protected endpoints** - Include the token in the Authorization header
+
+#### How to Use JWT Authentication
+
+1. **Step 1: Login to get a JWT token**
+   ```http
+   POST http://localhost:8080/api/auth/login
+   Content-Type: application/json
+
+   {
+     "username": "admin",
+     "password": "admin"
+   }
+   ```
+
+2. **Step 2: Save the token from the response**
+   ```json
+   {
+     "token": "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6IkFETUlOLFVTRVIiLCJzdWIiOiJhZG1pbiIsImlhdCI..."
+   }
+   ```
+
+3. **Step 3: Use token for protected endpoints** (POST, PUT, DELETE operations)
+   ```http
+   POST http://localhost:8080/api/users
+   Content-Type: application/json
+   Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJyb2xlcyI6IkFETUlOLFVTRVIiLCJzdWIiOiJhZG1p...
+
+   {
+     "username": "johndoe",
+     "email": "john@example.com",
+     "fullName": "John Doe",
+     "active": true
+   }
+   ```
+
+#### Available Test Users
+
+The application comes with two pre-configured users:
+
+1. **Regular User**
+   - Username: `user`
+   - Password: `password`
+   - Role: `USER`
+   - Permissions: Can view users but cannot modify
+
+2. **Admin User**
+   - Username: `admin`
+   - Password: `admin`
+   - Roles: `USER, ADMIN`
+   - Permissions: Full access (create, read, update, delete)
 
 ### Pagination Support
 

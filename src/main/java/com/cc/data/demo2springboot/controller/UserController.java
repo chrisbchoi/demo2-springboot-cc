@@ -8,11 +8,19 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.net.URI;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * REST controller for managing User resources.
@@ -70,12 +78,22 @@ public class UserController {
 
     /**
      * POST /api/users : Create a new user
+     * Requires JWT token authentication with ROLE_ADMIN
      *
      * @param user the user to create
      * @return the ResponseEntity with status 201 (Created) and with body the new user
      */
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<User> createUser(@RequestBody User user) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Logger logger = LoggerFactory.getLogger(UserController.class);
+        logger.info("User creation requested by: {}", authentication.getName());
+
+        // Set creation timestamp
+        user.setCreatedAt(LocalDateTime.now());
+        user.setUpdatedAt(LocalDateTime.now());
+
         User createdUser = userService.createUser(user);
 
         URI location = ServletUriComponentsBuilder
@@ -89,6 +107,7 @@ public class UserController {
 
     /**
      * PUT /api/users/{id} : Updates an existing user
+     * Requires JWT token authentication with ROLE_ADMIN
      *
      * @param id          the id of the user to update
      * @param userDetails the user to update
@@ -96,8 +115,21 @@ public class UserController {
      * or with status 404 (Not Found) if the user is not found
      */
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User userDetails) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Logger logger = LoggerFactory.getLogger(UserController.class);
+        logger.info("User update requested by: {} for user id: {}", authentication.getName(), id);
+
         try {
+            // Get the existing user and update only the allowed fields
+            Optional<User> existingUser = userService.getUserById(id);
+            if (existingUser.isPresent()) {
+                // Set updated timestamp
+                userDetails.setUpdatedAt(LocalDateTime.now());
+                userDetails.setCreatedAt(existingUser.get().getCreatedAt());
+            }
+
             User updatedUser = userService.updateUser(id, userDetails);
             return ResponseEntity.ok(updatedUser);
         } catch (RuntimeException e) {
@@ -107,12 +139,18 @@ public class UserController {
 
     /**
      * DELETE /api/users/{id} : Delete the user with the specified id
+     * Requires JWT token authentication with ROLE_ADMIN
      *
      * @param id the id of the user to delete
      * @return the ResponseEntity with status 204 (NO_CONTENT)
      */
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        Logger logger = LoggerFactory.getLogger(UserController.class);
+        logger.info("User deletion requested by: {} for user id: {}", authentication.getName(), id);
+
         try {
             userService.deleteUser(id);
             return ResponseEntity.noContent().build();

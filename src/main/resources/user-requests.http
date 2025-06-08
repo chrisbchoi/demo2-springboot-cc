@@ -1,49 +1,50 @@
-### Login to get authentication
-POST http://localhost:8080/login
-Content-Type: application/x-www-form-urlencoded
+# Authentication Requests
 
-username=admin&password=admin
-###
+### Login with JWT - Admin user
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
 
-### Store the session cookie for authenticated requests
-@sessionCookie = {{login.response.headers.Set-Cookie}}
+{
+  "username": "admin",
+  "password": "admin"
+}
 
-### Get all users (no auth - will work with current SecurityConfig)
-GET http://localhost:8080/api/users
-Accept: application/json
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
 
-### Get all users (with Basic Auth)
-GET http://localhost:8080/api/users
-Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+    if (response.status === 200) {
+        client.global.set("admin_token", response.body.token);
+        client.log("Admin token saved: " + response.body.token);
+    }
+%}
 
-### Get all users (with session cookie from login)
-GET http://localhost:8080/api/users
-Accept: application/json
-Cookie: {{sessionCookie}}
+### Login with JWT - Regular user
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
 
-### Get all users (paginated)
-GET http://localhost:8080/api/users?page=0&size=10
-Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+{
+  "username": "user",
+  "password": "password"
+}
 
-### Get all users - page 2 with 5 users per page
-GET http://localhost:8080/api/users?page=1&size=5
-Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
 
-#####
+    if (response.status === 200) {
+        client.global.set("user_token", response.body.token);
+        client.log("User token saved: " + response.body.token);
+    }
+%}
 
-### Get user by ID
-GET http://localhost:8080/api/users/1
-Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
-
-### Create a new user
+### Create a new user (ADMIN access required - with JWT token)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 {
   "username": "johndoe",
@@ -52,11 +53,24 @@ Authorization: Basic YWRtaW46YWRtaW4=
   "active": true
 }
 
-### Update an existing user
+### Try to create a new user with regular user JWT token (should fail with 403 Forbidden)
+POST http://localhost:8080/api/users
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{user_token}}
+
+{
+  "username": "testuser",
+  "email": "test.user@example.com",
+  "fullName": "Test User",
+  "active": true
+}
+
+### Update an existing user (ADMIN access required - with JWT token)
 PUT http://localhost:8080/api/users/1
 Content-Type: application/json
 Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 {
   "username": "johndoe",
@@ -65,17 +79,17 @@ Authorization: Basic YWRtaW46YWRtaW4=
   "active": true
 }
 
-### Delete a user
+### Delete a user (ADMIN access required - with JWT token)
 DELETE http://localhost:8080/api/users/1
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 ### === Batch User Creation for Pagination Testing ===
 
-### Create User 1
+### Create User 1 (with JWT token for admin)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 {
   "username": "user1",
@@ -84,11 +98,11 @@ Authorization: Basic YWRtaW46YWRtaW4=
   "active": true
 }
 
-### Create User 2
+### Create User 2 (with JWT token for admin)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 {
   "username": "user2",
@@ -97,11 +111,11 @@ Authorization: Basic YWRtaW46YWRtaW4=
   "active": true
 }
 
-### Create User 3
+### Create User 3 (with JWT token for admin)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 {
   "username": "user3",
@@ -110,11 +124,11 @@ Authorization: Basic YWRtaW46YWRtaW4=
   "active": true
 }
 
-### Create User 4
+### Create User 4 (with JWT token for admin)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 {
   "username": "user4",
@@ -123,11 +137,11 @@ Authorization: Basic YWRtaW46YWRtaW4=
   "active": true
 }
 
-### Create User 5
+### Create User 5 (with JWT token for admin)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 {
   "username": "user5",
@@ -136,11 +150,11 @@ Authorization: Basic YWRtaW46YWRtaW4=
   "active": true
 }
 
-### Create User 6
+### Create User 6 (with JWT token for admin)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 {
   "username": "user6",
@@ -149,11 +163,11 @@ Authorization: Basic YWRtaW46YWRtaW4=
   "active": true
 }
 
-### Create User 7
+### Create User 7 (with JWT token for admin)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 {
   "username": "user7",
@@ -162,11 +176,11 @@ Authorization: Basic YWRtaW46YWRtaW4=
   "active": true
 }
 
-### Create User 8
+### Create User 8 (with JWT token for admin)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 {
   "username": "user8",
@@ -175,11 +189,11 @@ Authorization: Basic YWRtaW46YWRtaW4=
   "active": true
 }
 
-### Create User 9
+### Create User 9 (with JWT token for admin)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 {
   "username": "user9",
@@ -188,11 +202,11 @@ Authorization: Basic YWRtaW46YWRtaW4=
   "active": true
 }
 
-### Create User 10
+### Create User 10 (with JWT token for admin)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 {
   "username": "user10",
@@ -201,11 +215,11 @@ Authorization: Basic YWRtaW46YWRtaW4=
   "active": true
 }
 
-### Create User 11
+### Create User 11 (with JWT token for admin)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 {
   "username": "user11",
@@ -214,11 +228,11 @@ Authorization: Basic YWRtaW46YWRtaW4=
   "active": true
 }
 
-### Create User 12
+### Create User 12 (with JWT token for admin)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 Accept: application/json
-Authorization: Basic YWRtaW46YWRtaW4=
+Authorization: Bearer {{admin_token}}
 
 {
   "username": "user12",
