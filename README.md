@@ -199,7 +199,33 @@ mvn test
 The project includes:
 - Unit tests for service layer logic
 - Controller tests for API endpoints
-- Security-related tests
+- Security tests for authentication and authorization
+
+### Security Testing
+
+The application includes comprehensive security tests in `UserControllerSecurityTest.java` that verify:
+
+- Authentication requirements for different endpoints
+- Authorization based on user roles (USER vs ADMIN)
+- CSRF protection for state-changing operations
+- Proper HTTP method handling
+- Rate limiting behavior
+- JWT token authentication
+
+These tests ensure that:
+1. Anonymous users can view users but cannot create, update, or delete
+2. Regular users (ROLE_USER) can view but have limited write access
+3. Admin users (ROLE_ADMIN) have full access to all endpoints
+4. All endpoints are properly protected against CSRF attacks
+5. The application handles OPTIONS requests for CORS preflight correctly
+
+Security tests are organized into nested test classes for better readability:
+- AuthenticationTests
+- AuthorizationTests
+- CsrfTests
+- MethodSecurityTests
+- RateLimitingTests
+- TokenAuthenticationTests
 
 ## Security
 
