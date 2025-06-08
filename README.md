@@ -126,6 +126,7 @@ H2 Console can be accessed at `http://localhost:8080/h2-console` with these cred
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET    | /api/users | Get all users |
+| GET    | /api/users?page={pageNumber}&size={pageSize} | Get paginated users |
 | GET    | /api/users/{id} | Get user by ID |
 | POST   | /api/users | Create a new user |
 | PUT    | /api/users/{id} | Update an existing user |
@@ -141,6 +142,49 @@ Content-Type: application/json
   "email": "john@example.com",
   "fullName": "John Doe",
   "active": true
+}
+```
+
+### Pagination Support
+
+The API supports pagination for retrieving users. To use pagination, include `page` and `size` query parameters:
+
+```http
+GET /api/users?page=0&size=10
+```
+
+Parameters:
+- `page`: Zero-based page index (0 = first page, 1 = second page)
+- `size`: Number of items per page
+
+The response includes pagination metadata:
+```json
+{
+  "content": [
+    { 
+      "id": 1,
+      "username": "user1",
+      // other user properties
+    },
+    // more users
+  ],
+  "pageable": {
+    "sort": { "empty": true, "sorted": false, "unsorted": true },
+    "offset": 0,
+    "pageNumber": 0,
+    "pageSize": 10,
+    "paged": true,
+    "unpaged": false
+  },
+  "last": false,
+  "totalElements": 12,
+  "totalPages": 2,
+  "size": 10,
+  "number": 0,
+  "sort": { "empty": true, "sorted": false, "unsorted": true },
+  "first": true,
+  "numberOfElements": 10,
+  "empty": false
 }
 ```
 

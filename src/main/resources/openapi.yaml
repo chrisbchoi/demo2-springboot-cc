@@ -13,15 +13,108 @@ paths:
       summary: Get all users
       description: Retrieves a list of all users
       operationId: getAllUsers
+      parameters:
+        - name: page
+          in: query
+          description: Zero-based page index (0 = first page)
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - name: size
+          in: query
+          description: The size of the page to be returned
+          required: false
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
       responses:
         '200':
           description: List of users retrieved successfully
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/User'
+                oneOf:
+                  - type: array
+                    items:
+                      $ref: '#/components/schemas/User'
+                  - $ref: '#/components/schemas/PageUser'
+              examples:
+                array:
+                  summary: Non-paginated response
+                  value:
+                    [
+                      {
+                        "id": 1,
+                        "username": "johndoe",
+                        "email": "john.doe@example.com",
+                        "fullName": "John Doe",
+                        "createdAt": "2025-06-08T10:15:30Z",
+                        "updatedAt": "2025-06-08T10:15:30Z",
+                        "active": true
+                      },
+                      {
+                        "id": 2,
+                        "username": "janedoe",
+                        "email": "jane.doe@example.com",
+                        "fullName": "Jane Doe",
+                        "createdAt": "2025-06-08T11:20:45Z",
+                        "updatedAt": "2025-06-08T11:20:45Z",
+                        "active": true
+                      }
+                    ]
+                page:
+                  summary: Paginated response
+                  value:
+                    {
+                      "content": [
+                        {
+                          "id": 1,
+                          "username": "johndoe",
+                          "email": "john.doe@example.com",
+                          "fullName": "John Doe",
+                          "createdAt": "2025-06-08T10:15:30Z",
+                          "updatedAt": "2025-06-08T10:15:30Z",
+                          "active": true
+                        },
+                        {
+                          "id": 2,
+                          "username": "janedoe",
+                          "email": "jane.doe@example.com",
+                          "fullName": "Jane Doe",
+                          "createdAt": "2025-06-08T11:20:45Z",
+                          "updatedAt": "2025-06-08T11:20:45Z",
+                          "active": true
+                        }
+                      ],
+                      "pageable": {
+                        "sort": {
+                          "empty": true,
+                          "sorted": false,
+                          "unsorted": true
+                        },
+                        "offset": 0,
+                        "pageNumber": 0,
+                        "pageSize": 10,
+                        "paged": true,
+                        "unpaged": false
+                      },
+                      "totalPages": 1,
+                      "totalElements": 2,
+                      "last": true,
+                      "size": 10,
+                      "number": 0,
+                      "sort": {
+                        "empty": true,
+                        "sorted": false,
+                        "unsorted": true
+                      },
+                      "numberOfElements": 2,
+                      "first": true,
+                      "empty": false
+                    }
     post:
       summary: Create a new user
       description: Creates a new user in the system
@@ -32,6 +125,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UserCreate'
+            example:
+              {
+                "username": "newuser",
+                "email": "new.user@example.com",
+                "fullName": "New User",
+                "active": true
+              }
       responses:
         '201':
           description: User created successfully
@@ -39,11 +139,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+              example:
+                {
+                  "id": 3,
+                  "username": "newuser",
+                  "email": "new.user@example.com",
+                  "fullName": "New User",
+                  "createdAt": "2025-06-08T12:30:15Z",
+                  "updatedAt": "2025-06-08T12:30:15Z",
+                  "active": true
+                }
           headers:
             Location:
               schema:
                 type: string
               description: URL of the created user resource
+              example: "http://localhost:8080/api/users/3"
         '400':
           description: Bad request - invalid input data
 
@@ -67,6 +178,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+              example:
+                {
+                  "id": 1,
+                  "username": "johndoe",
+                  "email": "john.doe@example.com",
+                  "fullName": "John Doe",
+                  "createdAt": "2025-06-08T10:15:30Z",
+                  "updatedAt": "2025-06-08T10:15:30Z",
+                  "active": true
+                }
         '404':
           description: User not found with the specified ID
     put:
@@ -79,6 +200,13 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/UserCreate'
+            example:
+              {
+                "username": "johndoe",
+                "email": "john.doe.updated@example.com",
+                "fullName": "John Doe Updated",
+                "active": true
+              }
       responses:
         '200':
           description: User updated successfully
@@ -86,6 +214,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/User'
+              example:
+                {
+                  "id": 1,
+                  "username": "johndoe",
+                  "email": "john.doe.updated@example.com",
+                  "fullName": "John Doe Updated",
+                  "createdAt": "2025-06-08T10:15:30Z",
+                  "updatedAt": "2025-06-08T13:45:22Z",
+                  "active": true
+                }
         '404':
           description: User not found with the specified ID
         '400':
@@ -154,3 +292,58 @@ components:
       required:
         - username
         - email
+
+    PageUser:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+        pageable:
+          type: object
+          properties:
+            sort:
+              type: object
+              properties:
+                empty:
+                  type: boolean
+                sorted:
+                  type: boolean
+                unsorted:
+                  type: boolean
+            offset:
+              type: integer
+            pageNumber:
+              type: integer
+            pageSize:
+              type: integer
+            paged:
+              type: boolean
+            unpaged:
+              type: boolean
+        last:
+          type: boolean
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+        size:
+          type: integer
+        number:
+          type: integer
+        sort:
+          type: object
+          properties:
+            empty:
+              type: boolean
+            sorted:
+              type: boolean
+            unsorted:
+              type: boolean
+        first:
+          type: boolean
+        numberOfElements:
+          type: integer
+        empty:
+          type: boolean
