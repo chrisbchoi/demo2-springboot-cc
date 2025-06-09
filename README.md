@@ -123,6 +123,8 @@ src/
 Run the application using Maven:
 
 ```bash
+# Set the JWT secret environment variable before running the application
+export JWT_SECRET=3F4428472B4B6250655368566D5971337336763979244226452948404D635166
 mvn spring-boot:run
 ```
 
@@ -133,6 +135,37 @@ H2 Console can be accessed at `http://localhost:8080/h2-console` with these cred
 - JDBC URL: `jdbc:h2:mem:testdb`
 - Username: `sa`
 - Password: `password`
+
+### Environment Variables
+
+For security reasons, sensitive configuration is stored in environment variables rather than in properties files:
+
+| Variable     | Description                              | Default                                                     |
+| ------------ | ---------------------------------------- | ----------------------------------------------------------- |
+| JWT_SECRET   | Secret key used for JWT token generation | A hardcoded development value (not secure for production)   |
+| DB_USERNAME  | Username for H2 database connection      | sa                                                          |
+| DB_PASSWORD  | Password for H2 database connection      | password                                                    |
+
+You can set these environment variables in your development environment:
+
+```bash
+# macOS/Linux
+export JWT_SECRET=your_secure_secret_key
+export DB_USERNAME=your_db_username
+export DB_PASSWORD=your_secure_password
+
+# Windows Command Prompt
+set JWT_SECRET=your_secure_secret_key
+set DB_USERNAME=your_db_username
+set DB_PASSWORD=your_secure_password
+
+# Windows PowerShell
+$env:JWT_SECRET="your_secure_secret_key"
+$env:DB_USERNAME="your_db_username"
+$env:DB_PASSWORD="your_secure_password"
+```
+
+For production, ensure these variables are securely set in your deployment environment.
 
 ## API Documentation
 
@@ -335,10 +368,27 @@ The application is configured with Spring Security:
 The application uses H2 in-memory database with the following configuration:
 
 - URL: `jdbc:h2:mem:testdb`
-- Username: `sa`
-- Password: `password`
+- Username: Environment variable `DB_USERNAME` (defaults to `sa` if not set)
+- Password: Environment variable `DB_PASSWORD` (defaults to `password` if not set)
 - Hibernate DDL Auto: `update` (schema is automatically updated)
 - SQL logging is enabled for debugging
+
+### Setting Database Credentials
+
+Database credentials can be configured via environment variables for enhanced security:
+
+```bash
+# Set database credentials before running the application
+export DB_USERNAME=custom_username
+export DB_PASSWORD=secure_password
+mvn spring-boot:run
+```
+
+For local development, the default values will be used if environment variables are not set. In production environments, always set these variables with secure values.
+
+### Database Configuration for Testing
+
+For unit tests, the application uses a test-specific configuration that doesn't rely on environment variables. This ensures consistent test execution regardless of the local environment setup.
 
 JPA properties:
 
