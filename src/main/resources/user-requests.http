@@ -241,6 +241,33 @@ Authorization: Bearer {{admin_token}}
   "active": true
 }
 
+### Create Multiple Users in Batch (ADMIN access required - with JWT token)
+POST http://localhost:8080/api/users/batch
+Content-Type: application/json
+Accept: application/json
+Authorization: Bearer {{admin_token}}
+
+[
+  {
+    "username": "batch_user1",
+    "email": "batch1@example.com",
+    "fullName": "Batch User One",
+    "active": true
+  },
+  {
+    "username": "batch_user2",
+    "email": "batch2@example.com",
+    "fullName": "Batch User Two",
+    "active": true
+  },
+  {
+    "username": "batch_user3",
+    "email": "batch3@example.com",
+    "fullName": "Batch User Three",
+    "active": false
+  }
+]
+
 ### After creating users, test pagination with different page sizes
 ### Get users page 1 (5 per page)
 GET http://localhost:8080/api/users?page=0&size=5

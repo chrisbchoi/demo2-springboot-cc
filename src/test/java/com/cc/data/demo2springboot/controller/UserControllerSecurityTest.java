@@ -71,6 +71,16 @@ public class UserControllerSecurityTest {
         when(userService.getUserById(1L)).thenReturn(Optional.of(testUser));
         when(userService.createUser(any(User.class))).thenReturn(testUser);
         when(userService.updateUser(anyLong(), any(User.class))).thenReturn(testUser);
+
+        // Add mock for batch user creation
+        List<User> batchUsers = Arrays.asList(
+            new User(3L, "batch1", "batch1@example.com", "Batch User 1",
+                    LocalDateTime.now(), LocalDateTime.now(), true),
+            new User(4L, "batch2", "batch2@example.com", "Batch User 2",
+                    LocalDateTime.now(), LocalDateTime.now(), true)
+        );
+
+        when(userService.createUser(any(User.class))).thenReturn(testUser);
     }
 
     @Nested
@@ -129,6 +139,22 @@ public class UserControllerSecurityTest {
         void deleteUser_WithAnonymousUser_ShouldBeForbidden() throws Exception {
             mockMvc.perform(delete("/api/users/1")
                     .with(csrf()))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("Should require authentication for batch creating users")
+        @WithAnonymousUser
+        void createUsers_WithAnonymousUser_ShouldBeForbidden() throws Exception {
+            List<User> newUsers = Arrays.asList(
+                new User(null, "batch1", "batch1@example.com", "Batch User 1", null, null, true),
+                new User(null, "batch2", "batch2@example.com", "Batch User 2", null, null, true)
+            );
+
+            mockMvc.perform(post("/api/users/batch")
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(newUsers)))
                     .andExpect(status().isForbidden());
         }
     }
@@ -196,6 +222,38 @@ public class UserControllerSecurityTest {
                     .with(csrf()))
                     .andExpect(status().isNoContent());
         }
+
+        @Test
+        @DisplayName("User with ROLE_USER cannot create batch users")
+        @WithMockUser(roles = "USER")
+        void createUsers_WithRoleUser_ShouldBeForbidden() throws Exception {
+            List<User> newUsers = Arrays.asList(
+                new User(null, "batch1", "batch1@example.com", "Batch User 1", null, null, true),
+                new User(null, "batch2", "batch2@example.com", "Batch User 2", null, null, true)
+            );
+
+            mockMvc.perform(post("/api/users/batch")
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(newUsers)))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("Admin with ROLE_ADMIN can create batch users")
+        @WithMockUser(roles = "ADMIN")
+        void createUsers_WithRoleAdmin_ShouldBeAllowed() throws Exception {
+            List<User> newUsers = Arrays.asList(
+                new User(null, "batch1", "batch1@example.com", "Batch User 1", null, null, true),
+                new User(null, "batch2", "batch2@example.com", "Batch User 2", null, null, true)
+            );
+
+            mockMvc.perform(post("/api/users/batch")
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(newUsers)))
+                    .andExpect(status().isCreated());
+        }
     }
 
     @Nested
@@ -233,6 +291,21 @@ public class UserControllerSecurityTest {
         @WithMockUser(roles = "ADMIN")
         void deleteUser_WithoutCsrf_ShouldBeForbidden() throws Exception {
             mockMvc.perform(delete("/api/users/1"))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("POST batch without CSRF token should be forbidden")
+        @WithMockUser(roles = "ADMIN")
+        void createUsers_WithoutCsrf_ShouldBeForbidden() throws Exception {
+            List<User> newUsers = Arrays.asList(
+                new User(null, "batch1", "batch1@example.com", "Batch User 1", null, null, true),
+                new User(null, "batch2", "batch2@example.com", "Batch User 2", null, null, true)
+            );
+
+            mockMvc.perform(post("/api/users/batch")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(newUsers)))
                     .andExpect(status().isForbidden());
         }
     }

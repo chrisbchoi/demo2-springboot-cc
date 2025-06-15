@@ -128,6 +128,33 @@ public class UserControllerTest {
         doNothing().when(userService).deleteUser(1L);
         doThrow(new ResourceNotFoundException("User", "id", 99L))
                 .when(userService).deleteUser(99L);
+
+        // Add mock setup for batch user creation
+        List<User> batchUsers = Arrays.asList(
+            new User(1L, "batch1", "batch1@example.com", "Batch User 1",
+                LocalDateTime.now(), LocalDateTime.now(), true),
+            new User(2L, "batch2", "batch2@example.com", "Batch User 2",
+                LocalDateTime.now(), LocalDateTime.now(), true)
+        );
+
+        // Instead of using specific matchers, use a more general mock that works with any User object
+        // This ensures the mock will respond correctly regardless of how the User is constructed in tests
+        when(userService.createUser(any(User.class)))
+            .thenAnswer(invocation -> {
+                User userArg = invocation.getArgument(0);
+                if (userArg == null) {
+                    return savedUser; // Fall back to default user if null
+                }
+
+                // Return specific mock users for batch creation based on username
+                if ("batch1".equals(userArg.getUsername())) {
+                    return batchUsers.get(0);
+                } else if ("batch2".equals(userArg.getUsername())) {
+                    return batchUsers.get(1);
+                } else {
+                    return savedUser; // Default for any other username
+                }
+            });
     }
 
     /**
@@ -294,5 +321,46 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.number", is(0)));
 
         verify(userService, times(1)).getAllUsers(any(Pageable.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void createUsers_WithAdminRole_ShouldCreateAndReturnBatchUsers() throws Exception {
+        List<User> usersToCreate = Arrays.asList(
+            new User(null, "batch1", "batch1@example.com", "Batch User 1", null, null, true),
+            new User(null, "batch2", "batch2@example.com", "Batch User 2", null, null, true)
+        );
+
+        mockMvc.perform(post("/api/users/batch")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(usersToCreate)))
+                .andExpect(status().isCreated())
+                .andExpect(header().string("Location", containsString("/api/users/batch")))
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].id", is(1)))
+                .andExpect(jsonPath("$[0].username", is("batch1")))
+                .andExpect(jsonPath("$[0].email", is("batch1@example.com")))
+                .andExpect(jsonPath("$[1].id", is(2)))
+                .andExpect(jsonPath("$[1].username", is("batch2")))
+                .andExpect(jsonPath("$[1].email", is("batch2@example.com")));
+
+        verify(userService, times(1)).createUser(argThat(user -> "batch1".equals(user.getUsername())));
+        verify(userService, times(1)).createUser(argThat(user -> "batch2".equals(user.getUsername())));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    void createUsers_WithUserRole_ShouldReturnForbidden() throws Exception {
+        List<User> usersToCreate = Arrays.asList(
+            new User(null, "batch1", "batch1@example.com", "Batch User 1", null, null, true),
+            new User(null, "batch2", "batch2@example.com", "Batch User 2", null, null, true)
+        );
+
+        mockMvc.perform(post("/api/users/batch")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(usersToCreate)))
+                .andExpect(status().isForbidden());
     }
 }

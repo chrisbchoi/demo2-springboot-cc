@@ -21,6 +21,7 @@ import java.net.URI;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * REST controller for managing User resources.
@@ -30,6 +31,7 @@ import java.util.Optional;
 public class UserController {
 
     private final UserService userService;
+    private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @Autowired
     public UserController(UserService userService) {
@@ -87,7 +89,6 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<User> createUser(@RequestBody User user) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Logger logger = LoggerFactory.getLogger(UserController.class);
         logger.info("User creation requested by: {}", authentication.getName());
 
         // Set creation timestamp
@@ -106,6 +107,38 @@ public class UserController {
     }
 
     /**
+     * POST /api/users/batch : Create multiple users at once
+     * Requires JWT token authentication with ROLE_ADMIN
+     *
+     * @param users the list of users to create
+     * @return the ResponseEntity with status 201 (Created) and with body the list of created users
+     */
+    @PostMapping("/batch")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<User>> createUsers(@RequestBody List<User> users) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        logger.info("Batch user creation requested by: {} for {} users", authentication.getName(), users.size());
+
+        // Set creation timestamp for all users
+        LocalDateTime now = LocalDateTime.now();
+        users.forEach(user -> {
+            user.setCreatedAt(now);
+            user.setUpdatedAt(now);
+        });
+
+        List<User> createdUsers = users.stream()
+                .map(userService::createUser)
+                .collect(Collectors.toList());
+
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .build()
+                .toUri();
+
+        return ResponseEntity.created(location).body(createdUsers);
+    }
+
+    /**
      * PUT /api/users/{id} : Updates an existing user
      * Requires JWT token authentication with ROLE_ADMIN
      *
@@ -118,7 +151,6 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User userDetails) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Logger logger = LoggerFactory.getLogger(UserController.class);
         logger.info("User update requested by: {} for user id: {}", authentication.getName(), id);
 
         try {
@@ -148,7 +180,6 @@ public class UserController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        Logger logger = LoggerFactory.getLogger(UserController.class);
         logger.info("User deletion requested by: {} for user id: {}", authentication.getName(), id);
 
         try {
