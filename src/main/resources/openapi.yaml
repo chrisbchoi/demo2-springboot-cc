@@ -7,7 +7,64 @@ servers:
   - url: http://localhost:8080
     description: Local development server
 
+security:
+  - bearerAuth: []
+
 paths:
+  /api/auth/login:
+    post:
+      summary: Authenticate user
+      description: Authenticates a user and returns a JWT token
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+            example:
+              {
+                "username": "johndoe",
+                "password": "password123"
+              }
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              example:
+                {
+                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                }
+        '400':
+          description: Bad request - username or password empty
+          content:
+            application/json:
+              schema:
+                type: string
+              examples:
+                usernameEmpty:
+                  value: "Username cannot be empty"
+                passwordEmpty:
+                  value: "Password cannot be empty"
+        '401':
+          description: Unauthorized - invalid credentials
+          content:
+            application/json:
+              schema:
+                type: string
+              example: "Invalid username or password"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: string
+              example: "Authentication error"
+
   /api/users:
     get:
       summary: Get all users
@@ -119,6 +176,8 @@ paths:
       summary: Create a new user
       description: Creates a new user in the system
       operationId: createUser
+      security:
+        - bearerAuth: ['ROLE_ADMIN']
       requestBody:
         required: true
         content:
@@ -157,6 +216,8 @@ paths:
               example: "http://localhost:8080/api/users/3"
         '400':
           description: Bad request - invalid input data
+        '403':
+          description: Forbidden - User does not have ADMIN role
 
   /api/users/{id}:
     parameters:
@@ -194,6 +255,8 @@ paths:
       summary: Update an existing user
       description: Updates a user's information based on their ID
       operationId: updateUser
+      security:
+        - bearerAuth: ['ROLE_ADMIN']
       requestBody:
         required: true
         content:
@@ -228,17 +291,30 @@ paths:
           description: User not found with the specified ID
         '400':
           description: Bad request - invalid input data
+        '403':
+          description: Forbidden - User does not have ADMIN role
     delete:
       summary: Delete a user
       description: Deletes a user from the system
       operationId: deleteUser
+      security:
+        - bearerAuth: ['ROLE_ADMIN']
       responses:
         '204':
           description: User deleted successfully
         '404':
           description: User not found with the specified ID
+        '403':
+          description: Forbidden - User does not have ADMIN role
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT Authorization header using the Bearer scheme. Example - "Authorization: Bearer {token}"
+
   schemas:
     User:
       type: object
@@ -347,3 +423,23 @@ components:
           type: integer
         empty:
           type: boolean
+
+    AuthRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          example: johndoe
+        password:
+          type: string
+          example: password123
+      required:
+        - username
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
