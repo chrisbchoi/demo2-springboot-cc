@@ -23,6 +23,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -347,6 +348,32 @@ public class UserControllerTest {
 
         verify(userService, times(1)).createUser(argThat(user -> "batch1".equals(user.getUsername())));
         verify(userService, times(1)).createUser(argThat(user -> "batch2".equals(user.getUsername())));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void createUsers_WithTooManyUsers_ShouldReturnBadRequest() throws Exception {
+        // Reset any existing mocks to ensure clean verification
+        reset(userService);
+
+        // Create a list of users that exceeds the MAX_BATCH_SIZE (10)
+        List<User> tooManyUsers = new ArrayList<>();
+        for (int i = 1; i <= 11; i++) {
+            tooManyUsers.add(new User(null, "batch" + i, "batch" + i + "@example.com", "Batch User " + i, null, null, true));
+        }
+
+        mockMvc.perform(post("/api/users/batch")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(tooManyUsers)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("Batch size exceeds maximum allowed")))
+                .andExpect(content().string(containsString("Maximum 10 users")));
+
+        // Since this test is focused on batch size validation, we only need to verify
+        // that the service methods aren't called due to early validation failure
+        // We don't need to verify individual calls by username
+        verify(userService, never()).createUser(any(User.class));
     }
 
     @Test

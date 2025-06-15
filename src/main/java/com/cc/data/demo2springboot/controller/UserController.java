@@ -111,13 +111,24 @@ public class UserController {
      * Requires JWT token authentication with ROLE_ADMIN
      *
      * @param users the list of users to create
-     * @return the ResponseEntity with status 201 (Created) and with body the list of created users
+     * @return the ResponseEntity with status 201 (Created) and with body the list of created users,
+     *         or with status 400 (Bad Request) if the batch size exceeds the maximum allowed
      */
     @PostMapping("/batch")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<User>> createUsers(@RequestBody List<User> users) {
+    public ResponseEntity<?> createUsers(@RequestBody List<User> users) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         logger.info("Batch user creation requested by: {} for {} users", authentication.getName(), users.size());
+
+        // Verify batch size doesn't exceed maximum allowed
+        final int MAX_BATCH_SIZE = 10;
+        if (users.size() > MAX_BATCH_SIZE) {
+            logger.warn("Batch user creation rejected: batch size {} exceeds maximum allowed {}",
+                    users.size(), MAX_BATCH_SIZE);
+            return ResponseEntity.badRequest()
+                    .body("Batch size exceeds maximum allowed. Maximum " + MAX_BATCH_SIZE +
+                          " users can be created per request.");
+        }
 
         // Set creation timestamp for all users
         LocalDateTime now = LocalDateTime.now();
