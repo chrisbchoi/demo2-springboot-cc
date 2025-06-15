@@ -1,6 +1,7 @@
 package com.cc.data.demo2springboot.controller;
 
 import com.cc.data.demo2springboot.config.TestSecurityConfig;
+import com.cc.data.demo2springboot.config.UserConfig;
 import com.cc.data.demo2springboot.exception.ResourceNotFoundException;
 import com.cc.data.demo2springboot.model.User;
 import com.cc.data.demo2springboot.service.JwtService;
@@ -52,6 +53,9 @@ public class UserControllerTest {
     private JwtService jwtService;
 
     @Autowired
+    private UserConfig userConfig;
+
+    @Autowired
     private ObjectMapper objectMapper;
 
     private MockMvc mockMvc;
@@ -68,6 +72,10 @@ public class UserControllerTest {
         public JwtService jwtService() {
             return mock(JwtService.class);
         }
+        @Bean
+        public UserConfig userConfig() {
+            return mock(UserConfig.class);
+        }
     }
 
     @BeforeEach
@@ -78,6 +86,9 @@ public class UserControllerTest {
                 .apply(springSecurity())
                 .alwaysDo(print()) // Add this to see detailed output
                 .build();
+
+        // Configure default max batch size
+        when(userConfig.getMaxBatchSize()).thenReturn(10);
 
         // Setup test JWT tokens
         adminToken = "admin-test-token";
@@ -356,6 +367,9 @@ public class UserControllerTest {
         // Reset any existing mocks to ensure clean verification
         reset(userService);
 
+        // Set max batch size to 10 for this test
+        when(userConfig.getMaxBatchSize()).thenReturn(10);
+
         // Create a list of users that exceeds the MAX_BATCH_SIZE (10)
         List<User> tooManyUsers = new ArrayList<>();
         for (int i = 1; i <= 11; i++) {
@@ -372,7 +386,33 @@ public class UserControllerTest {
 
         // Since this test is focused on batch size validation, we only need to verify
         // that the service methods aren't called due to early validation failure
-        // We don't need to verify individual calls by username
+        verify(userService, never()).createUser(any(User.class));
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    void createUsers_WithCustomMaxBatchSize_ShouldRespectConfiguredLimit() throws Exception {
+        // Reset any existing mocks
+        reset(userService);
+
+        // Configure a custom batch size limit of 5
+        int customBatchSize = 5;
+        when(userConfig.getMaxBatchSize()).thenReturn(customBatchSize);
+
+        // Create a list of users that exceeds our custom limit but is below the default
+        List<User> tooManyUsersForCustomLimit = new ArrayList<>();
+        for (int i = 1; i <= customBatchSize + 1; i++) {
+            tooManyUsersForCustomLimit.add(new User(null, "batch" + i, "batch" + i + "@example.com", "Batch User " + i, null, null, true));
+        }
+
+        mockMvc.perform(post("/api/users/batch")
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(tooManyUsersForCustomLimit)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("Batch size exceeds maximum allowed")))
+                .andExpect(content().string(containsString("Maximum " + customBatchSize + " users")));
+
         verify(userService, never()).createUser(any(User.class));
     }
 

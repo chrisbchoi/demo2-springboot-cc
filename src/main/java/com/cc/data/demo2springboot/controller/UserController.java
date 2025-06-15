@@ -1,5 +1,6 @@
 package com.cc.data.demo2springboot.controller;
 
+import com.cc.data.demo2springboot.config.UserConfig;
 import com.cc.data.demo2springboot.exception.ResourceNotFoundException;
 import com.cc.data.demo2springboot.model.User;
 import com.cc.data.demo2springboot.service.UserService;
@@ -31,11 +32,13 @@ import java.util.stream.Collectors;
 public class UserController {
 
     private final UserService userService;
+    private final UserConfig userConfig;
     private static final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, UserConfig userConfig) {
         this.userService = userService;
+        this.userConfig = userConfig;
     }
 
     /**
@@ -121,12 +124,12 @@ public class UserController {
         logger.info("Batch user creation requested by: {} for {} users", authentication.getName(), users.size());
 
         // Verify batch size doesn't exceed maximum allowed
-        final int MAX_BATCH_SIZE = 10;
-        if (users.size() > MAX_BATCH_SIZE) {
+        int maxBatchSize = userConfig.getMaxBatchSize();
+        if (users.size() > maxBatchSize) {
             logger.warn("Batch user creation rejected: batch size {} exceeds maximum allowed {}",
-                    users.size(), MAX_BATCH_SIZE);
+                    users.size(), maxBatchSize);
             return ResponseEntity.badRequest()
-                    .body("Batch size exceeds maximum allowed. Maximum " + MAX_BATCH_SIZE +
+                    .body("Batch size exceeds maximum allowed. Maximum " + maxBatchSize +
                           " users can be created per request.");
         }
 
