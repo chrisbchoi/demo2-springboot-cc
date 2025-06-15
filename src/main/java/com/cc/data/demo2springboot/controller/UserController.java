@@ -44,15 +44,22 @@ public class UserController {
     /**
      * GET /api/users : Get all users with pagination support
      *
-     * @param page The page number (zero-based)
-     * @param size The size of the page
+     * @param page The page number (zero-based), defaults to configured value
+     * @param size The size of the page, defaults to configured value
      * @return the ResponseEntity with status 200 (OK) and the paged list of users in the body
      */
     @GetMapping(params = {"page", "size"})
     public ResponseEntity<Page<User>> getAllUsersPaginated(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size);
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+
+        // Use configured defaults if parameters are not provided
+        int pageNumber = (page != null) ? page : userConfig.getDefaultPage();
+        int pageSize = (size != null) ? size : userConfig.getDefaultPageSize();
+
+        logger.debug("Getting paginated users with page={}, size={}", pageNumber, pageSize);
+
+        Pageable pageable = PageRequest.of(pageNumber, pageSize);
         Page<User> users = userService.getAllUsers(pageable);
         return ResponseEntity.ok(users);
     }

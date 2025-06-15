@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -87,8 +88,10 @@ public class UserControllerTest {
                 .alwaysDo(print()) // Add this to see detailed output
                 .build();
 
-        // Configure default max batch size
+        // Configure default values for tests
         when(userConfig.getMaxBatchSize()).thenReturn(10);
+        when(userConfig.getDefaultPage()).thenReturn(0);
+        when(userConfig.getDefaultPageSize()).thenReturn(10);
 
         // Setup test JWT tokens
         adminToken = "admin-test-token";
@@ -331,6 +334,56 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$.totalPages", is(2)))
                 .andExpect(jsonPath("$.size", is(2)))
                 .andExpect(jsonPath("$.number", is(0)));
+
+        verify(userService, times(1)).getAllUsers(any(Pageable.class));
+    }
+
+    @Test
+    void getAllUsersPaginated_WithDefaultConfig_ShouldUseConfiguredValues() throws Exception {
+        // Configure custom default values
+        int configDefaultPage = 1;
+        int configDefaultSize = 5;
+        when(userConfig.getDefaultPage()).thenReturn(configDefaultPage);
+        when(userConfig.getDefaultPageSize()).thenReturn(configDefaultSize);
+
+        User user1 = new User(1L, "testuser", "test@example.com", "Test User",
+                LocalDateTime.now(), LocalDateTime.now(), true);
+        User user2 = new User(2L, "user2", "user2@example.com", "User Two",
+                LocalDateTime.now(), LocalDateTime.now(), true);
+        User user3 = new User(3L, "user3", "user3@example.com", "User Three",
+                LocalDateTime.now(), LocalDateTime.now(), true);
+
+        List<User> allUsers = Arrays.asList(user1, user2, user3);
+        when(userService.getAllUsers(any(Pageable.class))).thenAnswer(invocation -> {
+            Pageable pageable = invocation.getArgument(0);
+
+            // Verify that the configured default values are used
+            assertEquals(configDefaultPage, pageable.getPageNumber());
+            assertEquals(configDefaultSize, pageable.getPageSize());
+
+            // Calculate correct start/end indices, ensuring they're within bounds
+            int pageSize = pageable.getPageSize();
+            int start = (int) pageable.getOffset();
+
+            // Handle the case where start index might be out of bounds
+            if (start >= allUsers.size()) {
+                // Return an empty page if requested page is beyond data bounds
+                return new PageImpl<>(
+                    new ArrayList<>(),
+                    pageable,
+                    allUsers.size()
+                );
+            }
+
+            int end = Math.min(start + pageSize, allUsers.size());
+            Page<User> userPage = new PageImpl<>(allUsers.subList(start, end), pageable, allUsers.size());
+            return userPage;
+        });
+
+        // Not providing page and size parameters should use configured defaults
+        mockMvc.perform(get("/api/users?page=&size="))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON));
 
         verify(userService, times(1)).getAllUsers(any(Pageable.class));
     }

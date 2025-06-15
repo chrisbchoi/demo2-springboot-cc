@@ -1,6 +1,7 @@
 package com.cc.data.demo2springboot.controller;
 
 import com.cc.data.demo2springboot.config.TestSecurityConfig;
+import com.cc.data.demo2springboot.config.UserConfig;
 import com.cc.data.demo2springboot.model.User;
 import com.cc.data.demo2springboot.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,16 +23,17 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 /**
  * Security-focused tests for the UserController
@@ -50,6 +52,9 @@ public class UserControllerSecurityTest {
     @MockBean
     private UserService userService;
 
+    @MockBean
+    private UserConfig userConfig;
+
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -59,6 +64,11 @@ public class UserControllerSecurityTest {
                 .webAppContextSetup(context)
                 .apply(SecurityMockMvcConfigurers.springSecurity())
                 .build();
+
+        // Configure default values for UserConfig
+        when(userConfig.getMaxBatchSize()).thenReturn(10);
+        when(userConfig.getDefaultPage()).thenReturn(0);
+        when(userConfig.getDefaultPageSize()).thenReturn(10);
 
         User testUser = new User(1L, "testuser", "test@example.com", "Test User",
                 LocalDateTime.now(), LocalDateTime.now(), true);
@@ -71,16 +81,6 @@ public class UserControllerSecurityTest {
         when(userService.getUserById(1L)).thenReturn(Optional.of(testUser));
         when(userService.createUser(any(User.class))).thenReturn(testUser);
         when(userService.updateUser(anyLong(), any(User.class))).thenReturn(testUser);
-
-        // Add mock for batch user creation
-        List<User> batchUsers = Arrays.asList(
-            new User(3L, "batch1", "batch1@example.com", "Batch User 1",
-                    LocalDateTime.now(), LocalDateTime.now(), true),
-            new User(4L, "batch2", "batch2@example.com", "Batch User 2",
-                    LocalDateTime.now(), LocalDateTime.now(), true)
-        );
-
-        when(userService.createUser(any(User.class))).thenReturn(testUser);
     }
 
     @Nested
@@ -156,6 +156,17 @@ public class UserControllerSecurityTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(newUsers)))
                     .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("Should allow anonymous access to paginated users")
+        @WithAnonymousUser
+        void getAllUsersPaginated_WithAnonymousUser_ShouldBeAllowed() throws Exception {
+            mockMvc.perform(get("/api/users")
+                    .param("page", "0")
+                    .param("size", "10")
+                    .with(csrf()))
+                    .andExpect(status().isOk());
         }
     }
 
@@ -362,6 +373,56 @@ public class UserControllerSecurityTest {
                     .header("Authorization", "Bearer mock.jwt.token")
                     .with(SecurityMockMvcRequestPostProcessors.user("user").roles("USER")))
                     .andExpect(status().isOk());
+        }
+    }
+
+    @Nested
+    @DisplayName("Pagination and Batch Size Tests")
+    class PaginationAndBatchSizeTests {
+
+        @Test
+        @DisplayName("Should respect max batch size limit")
+        @WithMockUser(roles = "ADMIN")
+        void createUsers_WithTooManyUsers_ShouldReturnBadRequest() throws Exception {
+            // Configure a smaller batch size limit
+            int maxBatchSize = 5;
+            when(userConfig.getMaxBatchSize()).thenReturn(maxBatchSize);
+
+            // Create a list exceeding the limit
+            List<User> tooManyUsers = new ArrayList<>();
+            for (int i = 1; i <= maxBatchSize + 1; i++) {
+                tooManyUsers.add(new User(null, "batch" + i, "batch" + i + "@example.com", "Batch User " + i, null, null, true));
+            }
+
+            mockMvc.perform(post("/api/users/batch")
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(tooManyUsers)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().string(org.hamcrest.Matchers.containsString("Batch size exceeds maximum allowed")));
+        }
+
+        @Test
+        @DisplayName("Should use configured default pagination parameters")
+        @WithAnonymousUser
+        void getAllUsersPaginated_ShouldUseConfiguredDefaults() throws Exception {
+            // Set custom pagination defaults
+            int defaultPage = 1;
+            int defaultSize = 20;
+            when(userConfig.getDefaultPage()).thenReturn(defaultPage);
+            when(userConfig.getDefaultPageSize()).thenReturn(defaultSize);
+
+            // No specific params - should use defaults
+            mockMvc.perform(get("/api/users")
+                    .param("page", "")
+                    .param("size", "")
+                    .with(csrf()))
+                    .andExpect(status().isOk());
+
+            // Verify the correct default values were used
+            verify(userService, times(1)).getAllUsers(argThat(pageable ->
+                pageable.getPageNumber() == defaultPage &&
+                pageable.getPageSize() == defaultSize));
         }
     }
 }
